@@ -2,7 +2,7 @@ import csv
 from notion_client import Client
 from notion_client.errors import APIResponseError
 
-NOTION = Client(auth="secret_V2HSKyo1MEsHpTwAgjeIesOVZJdIluqFJz7S45piOi2")
+NOTION = Client(auth="PASTE_TOKEN")
 
 DATABASE_ID = "be26fd1c20214740b04879bbf74f04f4"
 SOURCE_DATABASE_ID = "35c3f1c6f4e24a809127c5cab9637b5f"
