@@ -9,6 +9,6 @@
 
 .idea
 
-books/
-
 venv/
+
+.env
