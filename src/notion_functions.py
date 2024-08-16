@@ -1,13 +1,14 @@
-import csv
+import os
+from dotenv import load_dotenv
 from notion_client import Client
 from notion_client.errors import APIResponseError
 
-from src import BOOKSDIR
+load_dotenv()
 
-NOTION = Client(auth="PASTE_TOKEN")
-
-DATABASE_ID = "be26fd1c20214740b04879bbf74f04f4"
-SOURCE_DATABASE_ID = "35c3f1c6f4e24a809127c5cab9637b5f"
+NOTION = Client(auth=os.getenv("NOTION_AUTH"))
+HIGHLIGHTS_DB_ID = os.getenv("HIGHLIGHTS_DB_ID")
+LIBRARY_DB_ID = os.getenv("LIBRARY_DB_ID")
+TEST_DB_ID = os.getenv("TEST_DB_ID")
 
 
 def get_source_id_by_name(source_name: str) -> str | None:
@@ -22,7 +23,7 @@ def get_source_id_by_name(source_name: str) -> str | None:
     """
     try:
         response = NOTION.databases.query(
-            database_id=SOURCE_DATABASE_ID,
+            database_id=LIBRARY_DB_ID,
             filter={
                 "property": "Name",  # Assuming the title of the book is stored under the "Name" property
                 "title": {
@@ -40,7 +41,7 @@ def get_source_id_by_name(source_name: str) -> str | None:
 
 
 def create_highlight(page_number: int, highlight_text: str, note_text: str | None = None,
-                     source_name: str | None = None, favorite: bool = False) -> None:
+                     source_name: str | None = None, favorite: bool = False, test: bool = True) -> None:
     """
     Creates a highlight in a Notion database with optional note, source, and favorite status.
 
@@ -50,6 +51,7 @@ def create_highlight(page_number: int, highlight_text: str, note_text: str | Non
         note_text: Optional text for additional notes (default is None).
         source_name: Optional name of the source for the highlight (default is None).
         favorite: Flag indicating if the highlight is a favorite (default is False).
+        test: Flag indicating if the function call is a test (default is True).
 
     Returns:
         None
@@ -120,29 +122,9 @@ def create_highlight(page_number: int, highlight_text: str, note_text: str | Non
 
     try:
         NOTION.pages.create(
-            parent={"database_id": DATABASE_ID},
+            parent={"database_id": TEST_DB_ID if test else HIGHLIGHTS_DB_ID},
             properties=properties,
             children=children_blocks
         )
     except APIResponseError as e:
         print(f"An error occurred while creating the highlight: {e}")
-
-
-SOURCE_NAME = 'The Art of Communicating'
-CSV_NAME = 'the_art_of_communicating_thich_nhat_hanh_clippings_2024-8-15.csv'
-last_page_number = 0
-
-with open(BOOKSDIR.joinpath(CSV_NAME), mode='r', encoding='utf-8') as file:
-    csv_reader = csv.DictReader(file)
-    for row_idx, row in enumerate(csv_reader):
-        if row['page'].isdigit():
-            page_number = int(row['page'])
-            last_page_number = page_number
-        else:
-            last_page_number += 1
-            page_number = last_page_number
-
-        highlight_text = row['highlight_text']
-        note_text = row.get('note_text')
-
-        create_highlight(page_number, highlight_text, note_text, SOURCE_NAME)
