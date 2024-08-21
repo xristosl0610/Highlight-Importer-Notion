@@ -11,6 +11,24 @@ LIBRARY_DB_ID = os.getenv("LIBRARY_DB_ID")
 TEST_DB_ID = os.getenv("TEST_DB_ID")
 
 
+def get_database_name(database_id: str) -> str | None:
+    """
+    Retrieves the name of a Notion database by its ID.
+
+    Args:
+        database_id: The ID of the database.
+
+    Returns:
+        str | None: The name of the database if found, None if an error occurs.
+    """
+    try:
+        database = NOTION.databases.retrieve(database_id=database_id)
+        return database['title'][0]['text']['content']
+    except APIResponseError as e:
+        print(f"An error occurred while retrieving the database name: {e}")
+        return None
+
+
 def get_source_id_by_name(source_name: str) -> str | None:
     """
     Retrieves the ID of a source by its name from a Notion database.
@@ -41,7 +59,7 @@ def get_source_id_by_name(source_name: str) -> str | None:
 
 
 def create_highlight(page_number: int, highlight_text: str, note_text: str | None = None,
-                     source_name: str | None = None, favorite: bool = False, test: bool = True) -> None:
+                     source_name: str | None = None, favorite: bool = False, test: bool = True) -> bool:
     """
     Creates a highlight in a Notion database with optional note, source, and favorite status.
 
@@ -54,7 +72,7 @@ def create_highlight(page_number: int, highlight_text: str, note_text: str | Non
         test: Flag indicating if the function call is a test (default is True).
 
     Returns:
-        None
+        bool: True if the highlight was successfully created, False otherwise.
     """
     children_blocks = [
         {
@@ -126,5 +144,7 @@ def create_highlight(page_number: int, highlight_text: str, note_text: str | Non
             properties=properties,
             children=children_blocks
         )
+        return True
     except APIResponseError as e:
         print(f"An error occurred while creating the highlight: {e}")
+        return False
