@@ -1,4 +1,5 @@
 import csv
+import os
 from src import BOOKSDIR
 from src.notion_functions import (get_database_name, create_highlight, get_source_id_by_name,
                                   HIGHLIGHTS_DB_ID, LIBRARY_DB_ID, TEST_DB_ID)
@@ -59,12 +60,30 @@ def process_highlights(highlights: list[dict], bookname_lib: str, test: bool) ->
                for highlight in highlights)
 
 
+def check_csv_validity(csv_filename: str) -> None:
+    """
+    Check if the provided CSV file is valid.
+
+    Args:
+        csv_filename (str): The name of the CSV file to check.
+
+    Raises:
+        ValueError: If the file format is not CSV.
+        FileNotFoundError: If the CSV file is not found.
+    """
+    if not csv_filename.endswith('.csv'):
+        raise ValueError("Invalid file format. Please provide a CSV file.")
+    if not os.path.exists(csv_filename):
+        raise FileNotFoundError(f"CSV file '{csv_filename}' not found.")
+
+
 def main() -> None:
     """
     Main function to retrieve highlights from a CSV, add them to the highlights Notion database
     and link them with a specified book in the library Notion database.
     """
     csv_filename = input("Enter the CSV filename: ")
+    check_csv_validity(csv_filename)
     bookname_lib = input("Enter the book name: ")
 
     highlight_db_name = get_database_name(HIGHLIGHTS_DB_ID)
@@ -79,9 +98,16 @@ def main() -> None:
     use_test_db = input(f"Do you want to add highlights to the test database '{test_db_name}'? (yes/no): ").lower()
     test = use_test_db == 'yes'
 
-    if not get_source_id_by_name(bookname_lib):
-        print(f"Book '{bookname_lib}' not found in the library database.")
-        return
+    book_id = get_source_id_by_name(bookname_lib)
+    if not book_id:
+        retry = input(f"Book '{bookname_lib}' not found. Do you want to try again? (yes/no): ").lower()
+        if retry != 'yes':
+            raise ValueError(f"Book '{bookname_lib}' not found in the library database.")
+
+        bookname_lib = input("Enter the book name again: ")
+        book_id = get_source_id_by_name(bookname_lib)
+    if not book_id:
+        raise ValueError(f"Book '{bookname_lib}' not found in the library database.")
 
     proceed = input(f"Are you sure you want to proceed with adding highlights to the '{bookname_lib}'? (yes/no): ").lower()
     if proceed != 'yes':
